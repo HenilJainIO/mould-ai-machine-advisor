@@ -31,14 +31,14 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
   const isFormValid = Object.values(formData).every(value => value.trim() !== '');
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
             <Settings className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Module Configuration</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Mould Configuration</h1>
           <p className="text-gray-600">Configure your system to get intelligent machine recommendations</p>
         </div>
 

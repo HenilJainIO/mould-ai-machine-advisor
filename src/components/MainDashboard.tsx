@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Settings, Search, Filter, Cpu, Zap, TrendingUp, ArrowLeft, X } from 'lucide-react';
+import { Settings, Search, Filter, Cpu, Zap, TrendingUp, ArrowLeft, X, Edit } from 'lucide-react';
 import MachineCard from './MachineCard';
 import LoadingAnimation from './LoadingAnimation';
 import EmptyState from './EmptyState';
@@ -110,7 +110,7 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
     setIsLoading(true);
     
     // Simulate AI recommendation processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 4000));
     
     setMachines(mockMachines);
     setIsLoading(false);
@@ -154,12 +154,12 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
 
   const handleConfigurationUpdate = (updatedConfig) => {
     localStorage.setItem('aiModuleConfig', JSON.stringify(updatedConfig));
-    onEditConfiguration(updatedConfig);
+    onEditConfiguration();
     setShowConfigModal(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-inter">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -179,7 +179,7 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
                 <Cpu className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">AI Module Recommendation</h1>
+                <h1 className="text-2xl font-bold text-gray-900">AI Mould Recommendation</h1>
                 <p className="text-sm text-gray-600">Intelligent machine assignment system</p>
               </div>
             </div>
@@ -202,7 +202,7 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
               >
                 <X className="w-4 h-4" />
-                Unselect Module
+                Unselect Mould
               </Button>
             )}
           </div>
@@ -214,18 +214,18 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
         <div className="w-full max-w-7xl">
           {/* Filters Section */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <div className={`grid gap-4 ${selectedMould ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1'}`}>
-              {/* Module Selection */}
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
+              {/* Mould Selection */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Select Module</label>
+                <label className="text-sm font-medium text-gray-700">Select Mould</label>
                 <Select value={selectedMould} onValueChange={handleMouldSelection}>
                   <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
-                    <SelectValue placeholder="Choose module..." />
+                    <SelectValue placeholder="Choose mould..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <div className="p-2">
                       <Input
-                        placeholder="Search modules..."
+                        placeholder="Search moulds..."
                         value={mouldSearchTerm}
                         onChange={(e) => setMouldSearchTerm(e.target.value)}
                         className="mb-2"
