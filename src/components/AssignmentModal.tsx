@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Target, CheckCircle, X } from 'lucide-react';
+import { Calendar, Clock, Target, CheckCircle, X, Check } from 'lucide-react';
 
 const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +12,9 @@ const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
     targetQty: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [tempStartTime, setTempStartTime] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,23 +23,52 @@ const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
     setIsSubmitting(true);
     
     // Simulate API call to planning module
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const assignmentData = {
-      machineId: machine.id,
-      machineName: machine.name,
-      mouldId: mould,
-      startTime: formData.startTime,
-      targetQty: parseInt(formData.targetQty),
-      planningStatus: 'planning',
-      assignedAt: new Date().toISOString()
-    };
+    setShowSuccess(true);
     
-    onAssign(assignmentData);
-    setIsSubmitting(false);
+    // Show success animation for 2 seconds then close
+    setTimeout(() => {
+      const assignmentData = {
+        machineId: machine.id,
+        machineName: machine.name,
+        moduleId: mould,
+        startTime: formData.startTime,
+        targetQty: parseInt(formData.targetQty),
+        planningStatus: 'planning',
+        assignedAt: new Date().toISOString()
+      };
+      
+      onAssign(assignmentData);
+      setIsSubmitting(false);
+      setShowSuccess(false);
+    }, 2000);
+  };
+
+  const handleApplyDateTime = () => {
+    setFormData({...formData, startTime: tempStartTime});
+    setShowDatePicker(false);
   };
 
   const isFormValid = formData.startTime && formData.targetQty && parseInt(formData.targetQty) > 0;
+
+  if (showSuccess) {
+    return (
+      <Dialog open={true} onOpenChange={() => {}}>
+        <DialogContent className="max-w-md bg-white">
+          <div className="text-center py-8">
+            <div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4 animate-scale-in">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Successfully Added!</h3>
+            <p className="text-gray-600">
+              {machine.name} has been assigned to module {mould} and added to the planning module.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -54,7 +86,7 @@ const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
             <h3 className="font-medium text-blue-900 mb-2">Assignment Details</h3>
             <div className="space-y-1 text-sm">
               <div><strong>Machine:</strong> {machine.name}</div>
-              <div><strong>Mould:</strong> {mould}</div>
+              <div><strong>Module:</strong> {mould}</div>
               <div><strong>Status:</strong> <span className="text-green-600">Available</span></div>
             </div>
           </div>
@@ -67,15 +99,63 @@ const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
                 <Clock className="w-4 h-4" />
                 Start Time
               </Label>
-              <Input
-                id="startTime"
-                type="datetime-local"
-                value={formData.startTime}
-                onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-                className="h-11 border-gray-200 focus:border-blue-500"
-                min={new Date().toISOString().slice(0, 16)}
-                required
-              />
+              {showDatePicker ? (
+                <div className="space-y-2">
+                  <Input
+                    type="datetime-local"
+                    value={tempStartTime}
+                    onChange={(e) => setTempStartTime(e.target.value)}
+                    className="h-11 border-gray-200 focus:border-blue-500"
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleApplyDateTime}
+                      className="bg-blue-500 hover:bg-blue-600"
+                      disabled={!tempStartTime}
+                    >
+                      Apply
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setShowDatePicker(false);
+                        setTempStartTime('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.startTime ? new Date(formData.startTime).toLocaleString() : ''}
+                    placeholder="Select start time..."
+                    readOnly
+                    className="h-11 border-gray-200 cursor-pointer"
+                    onClick={() => {
+                      setShowDatePicker(true);
+                      setTempStartTime(formData.startTime);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowDatePicker(true);
+                      setTempStartTime(formData.startTime);
+                    }}
+                  >
+                    <Calendar className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Target Quantity */}

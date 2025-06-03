@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,16 +8,19 @@ import MachineCard from './MachineCard';
 import LoadingAnimation from './LoadingAnimation';
 import EmptyState from './EmptyState';
 import AssignmentModal from './AssignmentModal';
+import ConfigurationModal from './ConfigurationModal';
 
 const MainDashboard = ({ configData, onEditConfiguration }) => {
   const [selectedMould, setSelectedMould] = useState('');
   const [oeeFilter, setOeeFilter] = useState('all');
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [mouldSearchTerm, setMouldSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [machines, setMachines] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
   // Mock data for moulds
   const mouldList = [
@@ -24,8 +28,18 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
     'Mould-B-002', 
     'Mould-C-003',
     'Mould-D-004',
-    'Mould-E-005'
+    'Mould-E-005',
+    'Mould-F-006',
+    'Mould-G-007',
+    'Mould-H-008',
+    'Mould-I-009',
+    'Mould-J-010'
   ];
+
+  // Filter moulds based on search term
+  const filteredMoulds = mouldList.filter(mould => 
+    mould.toLowerCase().includes(mouldSearchTerm.toLowerCase())
+  );
 
   // Mock machine data
   const mockMachines = [
@@ -138,6 +152,12 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
     // Here you would integrate with the planning module
   };
 
+  const handleConfigurationUpdate = (updatedConfig) => {
+    localStorage.setItem('aiModuleConfig', JSON.stringify(updatedConfig));
+    onEditConfiguration(updatedConfig);
+    setShowConfigModal(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-inter">
       {/* Header */}
@@ -167,7 +187,7 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
             {!selectedMould && (
               <Button 
                 variant="outline" 
-                onClick={onEditConfiguration}
+                onClick={() => setShowConfigModal(true)}
                 className="flex items-center gap-2 hover:bg-gray-50"
               >
                 <Settings className="w-4 h-4" />
@@ -182,161 +202,172 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
               >
                 <X className="w-4 h-4" />
-                Unselect Mould
+                Unselect Module
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Filters Section */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className={`grid gap-4 ${selectedMould ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1'}`}>
-            {/* Mould Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Select Mould</label>
-              <Select value={selectedMould} onValueChange={handleMouldSelection}>
-                <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
-                  <SelectValue placeholder="Choose mould..." />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {mouldList.map((mould) => (
-                    <SelectItem key={mould} value={mould}>{mould}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Main Content Container - Centered */}
+      <div className="flex-1 flex items-center justify-center px-6 py-6">
+        <div className="w-full max-w-7xl">
+          {/* Filters Section */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div className={`grid gap-4 ${selectedMould ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1'}`}>
+              {/* Module Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Select Module</label>
+                <Select value={selectedMould} onValueChange={handleMouldSelection}>
+                  <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
+                    <SelectValue placeholder="Choose module..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search modules..."
+                        value={mouldSearchTerm}
+                        onChange={(e) => setMouldSearchTerm(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    {filteredMoulds.map((mould) => (
+                      <SelectItem key={mould} value={mould}>{mould}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Show filters only when mould is selected */}
+              {selectedMould && (
+                <>
+                  {/* OEE Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">OEE Category</label>
+                    <Select value={oeeFilter} onValueChange={setOeeFilter}>
+                      <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="best">Best (90%+)</SelectItem>
+                        <SelectItem value="good">Good (70-89%)</SelectItem>
+                        <SelectItem value="average">Average (50-69%)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Availability Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Availability</label>
+                    <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                      <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="all">All Machines</SelectItem>
+                        <SelectItem value="available">Available Only</SelectItem>
+                        <SelectItem value="unavailable">Unavailable Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Search */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="Search machines..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 h-11 border-gray-200 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+          </div>
 
-            {/* Show filters only when mould is selected */}
-            {selectedMould && (
-              <>
-                {/* OEE Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">OEE Category</label>
-                  <Select value={oeeFilter} onValueChange={setOeeFilter}>
-                    <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="best">Best (90%+)</SelectItem>
-                      <SelectItem value="good">Good (70-89%)</SelectItem>
-                      <SelectItem value="average">Average (50-69%)</SelectItem>
-                    </SelectContent>
-                  </Select>
+          {/* Main Content */}
+          {!selectedMould ? (
+            <EmptyState />
+          ) : isLoading ? (
+            <LoadingAnimation />
+          ) : (
+            <div className="space-y-8">
+              {/* AI Recommendation Banner */}
+              {recommendedMachine && (
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold">AI Recommendation</h3>
+                  </div>
+                  <p className="text-green-100 mb-4">
+                    Based on OEE analysis and availability, we recommend <strong>{recommendedMachine.name}</strong> for optimal performance.
+                  </p>
+                  <Button 
+                    onClick={() => handleAssignMachine(recommendedMachine)}
+                    className="bg-white text-green-600 hover:bg-green-50 font-medium"
+                  >
+                    Assign Recommended Machine
+                  </Button>
                 </div>
+              )}
 
-                {/* Availability Filter */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Availability</label>
-                  <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                    <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="all">All Machines</SelectItem>
-                      <SelectItem value="available">Available Only</SelectItem>
-                      <SelectItem value="unavailable">Unavailable Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Search */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Search</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="Search machines..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 h-11 border-gray-200 focus:border-blue-500"
-                    />
+              {/* Available Machines */}
+              {availableMachines.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <h2 className="text-xl font-semibold text-gray-900">Available Machines ({availableMachines.length})</h2>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {availableMachines.map((machine) => (
+                      <MachineCard 
+                        key={machine.id} 
+                        machine={machine} 
+                        onAssign={handleAssignMachine}
+                        isRecommended={machine.id === recommendedMachine?.id}
+                      />
+                    ))}
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+              )}
+
+              {/* Unavailable Machines */}
+              {unavailableMachines.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <h2 className="text-xl font-semibold text-gray-900">Unavailable Machines ({unavailableMachines.length})</h2>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {unavailableMachines.map((machine) => (
+                      <MachineCard 
+                        key={machine.id} 
+                        machine={machine} 
+                        onAssign={handleAssignMachine}
+                        isRecommended={false}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {filteredMachines.length === 0 && (
+                <div className="text-center py-12">
+                  <Filter className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No machines match your filters</h3>
+                  <p className="text-gray-600">Try adjusting your filter criteria to see more results.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-        {/* Main Content */}
-        {!selectedMould ? (
-          <EmptyState />
-        ) : isLoading ? (
-          <LoadingAnimation />
-        ) : (
-          <div className="space-y-8">
-            {/* AI Recommendation Banner */}
-            {recommendedMachine && (
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-lg font-semibold">AI Recommendation</h3>
-                </div>
-                <p className="text-green-100 mb-4">
-                  Based on OEE analysis and availability, we recommend <strong>{recommendedMachine.name}</strong> for optimal performance.
-                </p>
-                <Button 
-                  onClick={() => handleAssignMachine(recommendedMachine)}
-                  className="bg-white text-green-600 hover:bg-green-50 font-medium"
-                >
-                  Assign Recommended Machine
-                </Button>
-              </div>
-            )}
-
-            {/* Available Machines */}
-            {availableMachines.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <h2 className="text-xl font-semibold text-gray-900">Available Machines ({availableMachines.length})</h2>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {availableMachines.map((machine) => (
-                    <MachineCard 
-                      key={machine.id} 
-                      machine={machine} 
-                      onAssign={handleAssignMachine}
-                      isRecommended={machine.id === recommendedMachine?.id}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Unavailable Machines */}
-            {unavailableMachines.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <h2 className="text-xl font-semibold text-gray-900">Unavailable Machines ({unavailableMachines.length})</h2>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {unavailableMachines.map((machine) => (
-                    <MachineCard 
-                      key={machine.id} 
-                      machine={machine} 
-                      onAssign={handleAssignMachine}
-                      isRecommended={false}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {filteredMachines.length === 0 && (
-              <div className="text-center py-12">
-                <Filter className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No machines match your filters</h3>
-                <p className="text-gray-600">Try adjusting your filter criteria to see more results.</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Assignment Modal */}
@@ -346,6 +377,15 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
           mould={selectedMould}
           onClose={() => setShowAssignModal(false)}
           onAssign={handleAssignmentComplete}
+        />
+      )}
+
+      {/* Configuration Modal */}
+      {showConfigModal && (
+        <ConfigurationModal
+          currentConfig={configData}
+          onClose={() => setShowConfigModal(false)}
+          onSave={handleConfigurationUpdate}
         />
       )}
     </div>

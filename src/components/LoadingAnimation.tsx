@@ -1,8 +1,25 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Cpu, Zap, TrendingUp, Brain, Settings, Database } from 'lucide-react';
 
 const LoadingAnimation = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  const steps = [
+    "Fetching machine availability data...",
+    "Calculating OEE performance metrics...",
+    "Analyzing production history and downtime...",
+    "Generating intelligent recommendations..."
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % steps.length);
+    }, 800);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-center py-20">
       {/* Main AI Brain Animation */}
@@ -42,32 +59,41 @@ const LoadingAnimation = () => {
       <div className="text-center space-y-4">
         <h3 className="text-3xl font-bold text-gray-900">AI Recommendation Engine</h3>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Our intelligent system is analyzing machine performance data, OEE metrics, availability status, and production history to recommend the optimal machine for your selected mould.
+          Our intelligent system is analyzing machine performance data, OEE metrics, availability status, and production history to recommend the optimal machine for your selected module.
         </p>
         
-        {/* Animated Status Steps */}
-        <div className="mt-8 space-y-3">
-          <div className="flex items-center justify-center gap-3 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="animate-pulse">Fetching machine availability data...</span>
-          </div>
-          <div className="flex items-center justify-center gap-3 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-            <span className="animate-pulse" style={{ animationDelay: '0.5s' }}>Calculating OEE performance metrics...</span>
-          </div>
-          <div className="flex items-center justify-center gap-3 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-            <span className="animate-pulse" style={{ animationDelay: '1s' }}>Analyzing production history and downtime...</span>
-          </div>
-          <div className="flex items-center justify-center gap-3 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-            <span className="animate-pulse" style={{ animationDelay: '1.5s' }}>Generating intelligent recommendations...</span>
+        {/* Animated Status Steps - Scrolling */}
+        <div className="mt-8 space-y-3 h-32 overflow-hidden">
+          <div 
+            className="transition-transform duration-800 ease-in-out"
+            style={{ 
+              transform: `translateY(-${currentStep * 2}rem)` 
+            }}
+          >
+            {steps.map((step, index) => (
+              <div 
+                key={index}
+                className={`flex items-center justify-center gap-3 text-sm h-8 mb-3 transition-all duration-300 ${
+                  index === currentStep 
+                    ? 'text-blue-600 font-semibold scale-105' 
+                    : 'text-gray-600'
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                  index === currentStep ? 'bg-blue-500' : 'bg-gray-400'
+                }`}></div>
+                <span>{step}</span>
+              </div>
+            ))}
           </div>
         </div>
         
         {/* Progress Bar */}
         <div className="mt-8 w-96 mx-auto bg-gray-200 rounded-full h-2">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full animate-pulse" style={{ width: '75%' }}></div>
+          <div 
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+          ></div>
         </div>
         
         {/* Loading Dots */}
