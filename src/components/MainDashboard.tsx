@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Settings, Search, Filter, Cpu, Zap, TrendingUp } from 'lucide-react';
+import { Settings, Search, Filter, Cpu, Zap, TrendingUp, ArrowLeft, X } from 'lucide-react';
 import MachineCard from './MachineCard';
 import LoadingAnimation from './LoadingAnimation';
 import EmptyState from './EmptyState';
@@ -103,6 +102,14 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
     setIsLoading(false);
   };
 
+  const handleUnselectMould = () => {
+    setSelectedMould('');
+    setMachines([]);
+    setOeeFilter('all');
+    setAvailabilityFilter('all');
+    setSearchTerm('');
+  };
+
   const filteredMachines = machines.filter(machine => {
     const matchesOee = oeeFilter === 'all' || machine.oeeCategory === oeeFilter;
     const matchesAvailability = availabilityFilter === 'all' || machine.status.toLowerCase() === availabilityFilter;
@@ -132,12 +139,22 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-inter">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {selectedMould && (
+                <Button 
+                  variant="ghost" 
+                  onClick={handleUnselectMould}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+              )}
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                 <Cpu className="w-6 h-6 text-white" />
               </div>
@@ -157,6 +174,17 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
                 Settings
               </Button>
             )}
+
+            {selectedMould && (
+              <Button 
+                variant="ghost" 
+                onClick={handleUnselectMould}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <X className="w-4 h-4" />
+                Unselect Mould
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -164,7 +192,7 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
       {/* Filters Section */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className={`grid gap-4 ${selectedMould ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1'}`}>
             {/* Mould Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Select Mould</label>
@@ -180,50 +208,55 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
               </Select>
             </div>
 
-            {/* OEE Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">OEE Category</label>
-              <Select value={oeeFilter} onValueChange={setOeeFilter}>
-                <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="best">Best (90%+)</SelectItem>
-                  <SelectItem value="good">Good (70-89%)</SelectItem>
-                  <SelectItem value="average">Average (50-69%)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Show filters only when mould is selected */}
+            {selectedMould && (
+              <>
+                {/* OEE Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">OEE Category</label>
+                  <Select value={oeeFilter} onValueChange={setOeeFilter}>
+                    <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="best">Best (90%+)</SelectItem>
+                      <SelectItem value="good">Good (70-89%)</SelectItem>
+                      <SelectItem value="average">Average (50-69%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Availability Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Availability</label>
-              <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="all">All Machines</SelectItem>
-                  <SelectItem value="available">Available Only</SelectItem>
-                  <SelectItem value="unavailable">Unavailable Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                {/* Availability Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Availability</label>
+                  <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                    <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="all">All Machines</SelectItem>
+                      <SelectItem value="available">Available Only</SelectItem>
+                      <SelectItem value="unavailable">Unavailable Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Search */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search machines..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-11 border-gray-200 focus:border-blue-500"
-                />
-              </div>
-            </div>
+                {/* Search */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Search</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Search machines..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-11 border-gray-200 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
