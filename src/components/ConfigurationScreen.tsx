@@ -1,34 +1,88 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, ArrowRight, CheckCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Settings, ArrowRight, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import useDevices from '../hooks/useDevices';
+import { AppConfiguration } from '../services/iosenseService';
 
-const ConfigurationScreen = ({ onConfigurationComplete }) => {
+interface ConfigurationScreenProps {
+  onConfigurationComplete: (config: AppConfiguration) => void;
+}
+
+const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({ onConfigurationComplete }) => {
   const [formData, setFormData] = useState({
     planningDeviceId: '',
     masterDataDeviceId: '',
     sensorId: '',
-    deviceType: ''
+    deviceType: '',
+    accountId: '6710eea3340f9be7ffa61634'
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: devices = [], isLoading: devicesLoading, error: devicesError } = useDevices();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    onConfigurationComplete(formData);
-    setIsSubmitting(false);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      onConfigurationComplete(formData as AppConfiguration);
+    } catch (error) {
+      console.error('Configuration error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isFormValid = Object.values(formData).every(value => value.trim() !== '');
+
+  // Convert devices to options format
+  const deviceOptions = devices.map(device => ({
+    value: device.value,
+    label: device.label
+  }));
+
+  // Get sensors from selected master data device for sensor dropdown
+  const getSensorOptions = () => {
+    const selectedDevice = devices.find(d => d.value === formData.masterDataDeviceId);
+    if (!selectedDevice || !selectedDevice.metadata.sensors) {
+      return [];
+    }
+    
+    return selectedDevice.metadata.sensors.map(sensor => ({
+      value: sensor.sensorId,
+      label: sensor.sensorName 
+        ? `${sensor.sensorName} (${sensor.sensorId})` 
+        : sensor.sensorId
+    }));
+  };
+
+  const sensorOptions = getSensorOptions();
+
+  // Get unique device types from all fetched devices
+  const getMachineTypeOptions = () => {
+    const deviceTypes = new Map();
+    
+    devices.forEach(device => {
+      if (device.metadata.devTypeID && device.metadata.devTypeName) {
+        deviceTypes.set(device.metadata.devTypeID, {
+          value: device.metadata.devTypeID,
+          label: `${device.metadata.devTypeName} (${device.metadata.devTypeID})`
+        });
+      }
+    });
+    
+    // Convert Map to array and sort by label
+    return Array.from(deviceTypes.values()).sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  const machineTypeOptions = getMachineTypeOptions();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
@@ -48,6 +102,22 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
             <CardTitle className="text-xl text-gray-800">System Configuration</CardTitle>
           </CardHeader>
           <CardContent className="p-8">
+            {devicesError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load devices: {devicesError.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {devicesLoading && (
+              <div className="flex items-center justify-center py-8 mb-6">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <span className="ml-3 text-gray-600">Loading devices from IoSense...</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Planning Device ID */}
               <div className="space-y-2">
@@ -57,14 +127,15 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
                 <Select 
                   value={formData.planningDeviceId} 
                   onValueChange={(value) => setFormData({...formData, planningDeviceId: value})}
+                  disabled={devicesLoading}
                 >
                   <SelectTrigger className="h-12 border-gray-200 focus:border-blue-500 transition-colors">
                     <SelectValue placeholder="Select planning device..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
-                    <SelectItem value="planning-001">Planning Device 001</SelectItem>
-                    <SelectItem value="planning-002">Planning Device 002</SelectItem>
-                    <SelectItem value="planning-003">Planning Device 003</SelectItem>
+                    {deviceOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -76,15 +147,16 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
                 </Label>
                 <Select 
                   value={formData.masterDataDeviceId} 
-                  onValueChange={(value) => setFormData({...formData, masterDataDeviceId: value})}
+                  onValueChange={(value) => setFormData({...formData, masterDataDeviceId: value, sensorId: ''})}
+                  disabled={devicesLoading}
                 >
                   <SelectTrigger className="h-12 border-gray-200 focus:border-blue-500 transition-colors">
                     <SelectValue placeholder="Select master data device..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
-                    <SelectItem value="master-001">Master Data Device 001</SelectItem>
-                    <SelectItem value="master-002">Master Data Device 002</SelectItem>
-                    <SelectItem value="master-003">Master Data Device 003</SelectItem>
+                    {deviceOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -97,14 +169,19 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
                 <Select 
                   value={formData.sensorId} 
                   onValueChange={(value) => setFormData({...formData, sensorId: value})}
+                  disabled={devicesLoading || !formData.masterDataDeviceId}
                 >
                   <SelectTrigger className="h-12 border-gray-200 focus:border-blue-500 transition-colors">
-                    <SelectValue placeholder="Select sensor for mould data..." />
+                    <SelectValue placeholder={
+                      formData.masterDataDeviceId 
+                        ? "Select sensor for mould data..." 
+                        : "Select master data device first..."
+                    } />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
-                    <SelectItem value="sensor-mould-01">Mould Sensor 01</SelectItem>
-                    <SelectItem value="sensor-mould-02">Mould Sensor 02</SelectItem>
-                    <SelectItem value="sensor-mould-03">Mould Sensor 03</SelectItem>
+                    {sensorOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -122,9 +199,9 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
                     <SelectValue placeholder="Select device type for recommendations..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
-                    <SelectItem value="injection-molding">Injection Molding Machines</SelectItem>
-                    <SelectItem value="cnc-machines">CNC Machines</SelectItem>
-                    <SelectItem value="assembly-lines">Assembly Lines</SelectItem>
+                    {machineTypeOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -132,12 +209,12 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
               {/* Submit Button */}
               <Button 
                 type="submit" 
-                disabled={!isFormValid || isSubmitting}
+                disabled={!isFormValid || isSubmitting || devicesLoading || !!devicesError}
                 className="w-full h-12 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium transition-all duration-200 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Configuring System...
                   </div>
                 ) : (
@@ -158,6 +235,11 @@ const ConfigurationScreen = ({ onConfigurationComplete }) => {
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span>Step 1 of 1: System Configuration</span>
           </div>
+          {devices.length > 0 && (
+            <div className="mt-2 text-xs text-green-600">
+              ✓ {devices.length} devices loaded from IoSense
+            </div>
+          )}
         </div>
       </div>
     </div>

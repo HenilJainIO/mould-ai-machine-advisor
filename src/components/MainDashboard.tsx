@@ -1,124 +1,72 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Settings, Search, Filter, Cpu, Zap, TrendingUp, ArrowLeft, X, Edit } from 'lucide-react';
+import { Settings, Search, Filter, Cpu, Zap, TrendingUp, ArrowLeft, X, Edit, Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import MachineCard from './MachineCard';
 import LoadingAnimation from './LoadingAnimation';
 import EmptyState from './EmptyState';
 import AssignmentModal from './AssignmentModal';
 import ConfigurationModal from './ConfigurationModal';
+import useMouldData from '../hooks/useMouldData';
+import useMachineData from '../hooks/useMachineData';
 
-const MainDashboard = ({ configData, onEditConfiguration }) => {
+const MainDashboard = ({ configData, onEditConfiguration, onSaveConfiguration }) => {
   const [selectedMould, setSelectedMould] = useState('');
   const [oeeFilter, setOeeFilter] = useState('all');
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [mouldSearchTerm, setMouldSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [machines, setMachines] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [showMachineCards, setShowMachineCards] = useState(false);
 
-  // Mock data for moulds
-  const mouldList = [
-    'Mould-A-001',
-    'Mould-B-002', 
-    'Mould-C-003',
-    'Mould-D-004',
-    'Mould-E-005',
-    'Mould-F-006',
-    'Mould-G-007',
-    'Mould-H-008',
-    'Mould-I-009',
-    'Mould-J-010'
-  ];
+  // Fetch real mould data using the configuration
+  const { 
+    data: mouldList = [], 
+    isLoading: mouldDataLoading, 
+    error: mouldDataError 
+  } = useMouldData({
+    masterDeviceId: configData?.masterDataDeviceId || '',
+    sensorId: configData?.sensorId || '',
+    enabled: !!(configData?.masterDataDeviceId && configData?.sensorId)
+  });
+
+  // Fetch real machine data when mould is selected
+  const { 
+    data: machines = [], 
+    isLoading: machineDataLoading, 
+    error: machineDataError 
+  } = useMachineData({
+    planningDeviceId: configData?.planningDeviceId || '',
+    selectedMould: selectedMould,
+    enabled: !!(configData?.planningDeviceId && selectedMould && showMachineCards)
+  });
 
   // Filter moulds based on search term
   const filteredMoulds = mouldList.filter(mould => 
     mould.toLowerCase().includes(mouldSearchTerm.toLowerCase())
   );
 
-  // Mock machine data
-  const mockMachines = [
-    {
-      id: 'machine-001',
-      name: 'Injection Machine 001',
-      status: 'Available',
-      oeeCategory: 'best',
-      lastProduction: {
-        startTime: '2024-01-15 08:00',
-        endTime: '2024-01-15 16:00',
-        duration: '8h 00m',
-        targetQty: 1000,
-        actualQty: 980,
-        availability: 95,
-        performance: 92,
-        quality: 98,
-        rejectionQty: 20,
-        downtimeMinutes: 45,
-        topRejectionReason: 'Surface defects',
-        topDowntimeReason: 'Material shortage'
-      }
-    },
-    {
-      id: 'machine-002',
-      name: 'Injection Machine 002',
-      status: 'Unavailable',
-      oeeCategory: 'good',
-      lastProduction: {
-        startTime: '2024-01-15 06:00',
-        endTime: '2024-01-15 18:00',
-        duration: '12h 00m',
-        targetQty: 1500,
-        actualQty: 1320,
-        availability: 88,
-        performance: 85,
-        quality: 95,
-        rejectionQty: 180,
-        downtimeMinutes: 120,
-        topRejectionReason: 'Dimensional issues',
-        topDowntimeReason: 'Equipment maintenance'
-      }
-    },
-    {
-      id: 'machine-003',
-      name: 'Injection Machine 003',
-      status: 'Available',
-      oeeCategory: 'average',
-      lastProduction: {
-        startTime: '2024-01-14 10:00',
-        endTime: '2024-01-14 22:00',
-        duration: '12h 00m',
-        targetQty: 1200,
-        actualQty: 1000,
-        availability: 82,
-        performance: 78,
-        quality: 90,
-        rejectionQty: 200,
-        downtimeMinutes: 180,
-        topRejectionReason: 'Color variation',
-        topDowntimeReason: 'Tool change'
-      }
-    }
-  ];
-
   const handleMouldSelection = async (mouldId) => {
     setSelectedMould(mouldId);
-    setIsLoading(true);
+    setShowMachineCards(false);
+    setIsAiProcessing(true);
     
-    // Simulate AI recommendation processing
-    await new Promise(resolve => setTimeout(resolve, 4000));
+    // Show cool AI processing animation for 5 seconds
+    await new Promise(resolve => setTimeout(resolve, 5000));
     
-    setMachines(mockMachines);
-    setIsLoading(false);
+    setIsAiProcessing(false);
+    setShowMachineCards(true);
   };
 
   const handleUnselectMould = () => {
     setSelectedMould('');
-    setMachines([]);
+    setShowMachineCards(false);
+    setIsAiProcessing(false);
     setOeeFilter('all');
     setAvailabilityFilter('all');
     setSearchTerm('');
@@ -153,9 +101,13 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
   };
 
   const handleConfigurationUpdate = (updatedConfig) => {
-    localStorage.setItem('aiModuleConfig', JSON.stringify(updatedConfig));
-    onEditConfiguration();
-    setShowConfigModal(false);
+    try {
+      onSaveConfiguration(updatedConfig);
+      setShowConfigModal(false);
+    } catch (error) {
+      console.error('Failed to save configuration:', error);
+      // You could show a toast notification here
+    }
   };
 
   return (
@@ -214,26 +166,67 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
         <div className="w-full max-w-7xl">
           {/* Filters Section */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            {mouldDataError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load mould data: {mouldDataError.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
               {/* Mould Selection */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Select Mould</label>
-                <Select value={selectedMould} onValueChange={handleMouldSelection}>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">Select Mould</label>
+                  {!mouldDataLoading && !mouldDataError && mouldList.length > 0 && (
+                    <span className="text-xs text-gray-500">
+                      {mouldList.length} moulds available
+                    </span>
+                  )}
+                </div>
+                <Select 
+                  value={selectedMould} 
+                  onValueChange={handleMouldSelection}
+                  disabled={mouldDataLoading || !!mouldDataError}
+                >
                   <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500">
-                    <SelectValue placeholder="Choose mould..." />
+                    <SelectValue placeholder={
+                      mouldDataLoading 
+                        ? "Loading moulds..." 
+                        : mouldDataError 
+                        ? "Error loading moulds" 
+                        : "Choose mould..."
+                    } />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
-                    <div className="p-2">
-                      <Input
-                        placeholder="Search moulds..."
-                        value={mouldSearchTerm}
-                        onChange={(e) => setMouldSearchTerm(e.target.value)}
-                        className="mb-2"
-                      />
-                    </div>
-                    {filteredMoulds.map((mould) => (
-                      <SelectItem key={mould} value={mould}>{mould}</SelectItem>
-                    ))}
+                    {mouldDataLoading ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="ml-2 text-sm text-gray-600">Loading mould data...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search moulds..."
+                            value={mouldSearchTerm}
+                            onChange={(e) => setMouldSearchTerm(e.target.value)}
+                            className="mb-2"
+                          />
+                        </div>
+                        {filteredMoulds.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-gray-500">
+                            {mouldSearchTerm ? 'No moulds match your search' : 'No mould data found'}
+                          </div>
+                        ) : (
+                          filteredMoulds.map((mould) => (
+                            <SelectItem key={mould} value={mould}>{mould}</SelectItem>
+                          ))
+                        )}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -293,10 +286,24 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
           {/* Main Content */}
           {!selectedMould ? (
             <EmptyState />
-          ) : isLoading ? (
+          ) : isAiProcessing ? (
             <LoadingAnimation />
-          ) : (
+          ) : showMachineCards && machineDataLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Loading machine data...</span>
+            </div>
+          ) : showMachineCards ? (
             <div className="space-y-8">
+              {machineDataError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Failed to load machine data: {machineDataError.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* AI Recommendation Banner */}
               {recommendedMachine && (
                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
@@ -358,15 +365,15 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
                 </div>
               )}
 
-              {filteredMachines.length === 0 && (
+              {filteredMachines.length === 0 && !machineDataError && (
                 <div className="text-center py-12">
                   <Filter className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No machines match your filters</h3>
-                  <p className="text-gray-600">Try adjusting your filter criteria to see more results.</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No machines found for this mould</h3>
+                  <p className="text-gray-600">Try selecting a different mould or check your configuration.</p>
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -375,6 +382,7 @@ const MainDashboard = ({ configData, onEditConfiguration }) => {
         <AssignmentModal
           machine={selectedMachine}
           mould={selectedMould}
+          configData={configData}
           onClose={() => setShowAssignModal(false)}
           onAssign={handleAssignmentComplete}
         />

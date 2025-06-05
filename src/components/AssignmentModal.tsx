@@ -1,16 +1,18 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Target, CheckCircle, X, Check, Settings } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Calendar, Clock, Target, CheckCircle, X, Check, Settings, Database } from 'lucide-react';
+import { iosenseService } from '../services/iosenseService';
 
-const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
+const AssignmentModal = ({ machine, mould, onClose, onAssign, configData }) => {
   const [formData, setFormData] = useState({
     startTime: '',
     targetQty: ''
   });
+  const [useDummyDevice, setUseDummyDevice] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showProcessing, setShowProcessing] = useState(false);
@@ -38,29 +40,49 @@ const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
       setProcessingStep(prev => (prev + 1) % processingSteps.length);
     }, 400);
 
-    // Show processing for 2 seconds
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    clearInterval(stepInterval);
-    setShowProcessing(false);
-    setShowSuccess(true);
-    
-    // Show success celebration for 3 seconds
-    setTimeout(() => {
-      const assignmentData = {
-        machineId: machine.id,
+    try {
+      // Call the createPlanningRow API
+      await iosenseService.createPlanningRow({
         machineName: machine.name,
-        mouldId: mould,
+        mouldName: mould,
+        targetQuantity: parseInt(formData.targetQty),
         startTime: formData.startTime,
-        targetQty: parseInt(formData.targetQty),
-        planningStatus: 'planning',
-        assignedAt: new Date().toISOString()
-      };
+        useDummyDevice: useDummyDevice,
+        planningDeviceId: configData?.planningDeviceId || ''
+      });
+
+      // Show processing for 2 seconds
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      onAssign(assignmentData);
+      clearInterval(stepInterval);
+      setShowProcessing(false);
+      setShowSuccess(true);
+      
+      // Show success celebration for 3 seconds
+      setTimeout(() => {
+        const assignmentData = {
+          machineId: machine.id,
+          machineName: machine.name,
+          mouldId: mould,
+          startTime: formData.startTime,
+          targetQty: parseInt(formData.targetQty),
+          planningStatus: 'planning',
+          assignedAt: new Date().toISOString(),
+          deviceUsed: useDummyDevice ? 'Planwise_Production_test' : configData?.planningDeviceId
+        };
+        
+        onAssign(assignmentData);
+        setIsSubmitting(false);
+        setShowSuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to create planning row:', error);
+      clearInterval(stepInterval);
+      setShowProcessing(false);
       setIsSubmitting(false);
-      setShowSuccess(false);
-    }, 3000);
+      // Handle error - could show error message here
+      alert('Failed to add to planning. Please try again.');
+    }
   };
 
   const handleApplyDateTime = () => {
@@ -277,6 +299,27 @@ const AssignmentModal = ({ machine, mould, onClose, onAssign }) => {
                 min="1"
                 required
               />
+            </div>
+
+            {/* Device Toggle */}
+            <div className="space-y-2">
+              <Label htmlFor="useDummyDevice" className="flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                Device Selection
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="useDummyDevice"
+                  checked={useDummyDevice}
+                  onCheckedChange={(value) => setUseDummyDevice(value)}
+                />
+                <span className="text-sm text-gray-600">
+                  {useDummyDevice ? 'Using Dummy Device (Planwise_Production_test)' : `Using Planning Device (${configData?.planningDeviceId || 'Not configured'})`}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Toggle to use either your configured planning device or the dummy test device for creating planning entries.
+              </p>
             </div>
 
             {/* Action Buttons */}
